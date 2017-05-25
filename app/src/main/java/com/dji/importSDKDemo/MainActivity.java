@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
@@ -19,8 +20,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -35,6 +40,11 @@ import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
+import com.amap.api.maps2d.model.Polyline;
+import com.amap.api.maps2d.model.PolylineOptions;
+import com.oguzdev.circularfloatingactionmenu.library.FloatingActionButton;
+import com.oguzdev.circularfloatingactionmenu.library.FloatingActionMenu;
+import com.oguzdev.circularfloatingactionmenu.library.SubActionButton;
 
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -64,14 +74,14 @@ import dji.sdk.mission.waypoint.WaypointMissionOperatorListener;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
-public class MainActivity extends FragmentActivity implements View.OnClickListener, OnMapClickListener {
+public class MainActivity extends FragmentActivity implements OnMapClickListener {
 
     protected static final String TAG = "MainActivity";
 
     private MapView mapView;
     private AMap aMap;
 
-    private TextView mstate, message;
+    private TextView mstate, mLat, mLng, mAlt;
     private Button mbltooth, locate, add, clear;
     private Button config, upload, start, stop;
 
@@ -88,6 +98,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     private float mSpeed = 10.0f;
 
     private List<Waypoint> waypointList = new ArrayList<>();
+    private List<LatLng> linedraw = new ArrayList<>();
+    private List<Polyline> Polylinelist = new ArrayList<>();
+
 
     public static WaypointMission.Builder waypointMissionBuilder;
     private FlightController mFlightController;
@@ -95,7 +108,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     private WaypointMissionFinishedAction mFinishedAction = WaypointMissionFinishedAction.NO_ACTION;
     private WaypointMissionHeadingMode mHeadingMode = WaypointMissionHeadingMode.AUTO;
 
-    private int delay = 6000, repeat = 1000 , followradius = -1;
+    private int delay = 6000, repeat = 1000, followradius = -1;
 
     static String BlueToothAddress = "null";
     private BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -145,29 +158,265 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         });
     }
 
+
     private void initUI() {
 
         mstate = (TextView) findViewById(R.id.ConnectStatusTextView);
-        message = (TextView) findViewById(R.id.message);
+//        message = (TextView) findViewById(R.id.message);
 
-        mbltooth = (Button) findViewById(R.id.bluetooth);
-        locate = (Button) findViewById(R.id.locate);
-        add = (Button) findViewById(R.id.add);
-        clear = (Button) findViewById(R.id.clear);
-        config = (Button) findViewById(R.id.config);
-        upload = (Button) findViewById(R.id.upload);
-        start = (Button) findViewById(R.id.start);
-        stop = (Button) findViewById(R.id.stop);
+        mLat = (TextView) findViewById(R.id.Lat);
+        mLng = (TextView) findViewById(R.id.Lng);
+        mAlt = (TextView) findViewById(R.id.Alt);
 
-        mbltooth.setOnClickListener(this);
-        locate.setOnClickListener(this);
-        add.setOnClickListener(this);
-        clear.setOnClickListener(this);
-        config.setOnClickListener(this);
-        upload.setOnClickListener(this);
-        start.setOnClickListener(this);
-        stop.setOnClickListener(this);
+//        mbltooth = (Button) findViewById(R.id.bluetooth);
+//        locate = (Button) findViewById(R.id.locate);
+//        add = (Button) findViewById(R.id.add);
+//        clear = (Button) findViewById(R.id.clear);
+//        config = (Button) findViewById(R.id.config);
+//        upload = (Button) findViewById(R.id.upload);
+//        start = (Button) findViewById(R.id.start);
+//        stop = (Button) findViewById(R.id.stop);
+//
+//        mbltooth.setOnClickListener(this);
+//        locate.setOnClickListener(this);
+//        add.setOnClickListener(this);
+//        clear.setOnClickListener(this);
+//        config.setOnClickListener(this);
+//        upload.setOnClickListener(this);
+//        start.setOnClickListener(this);
+//        stop.setOnClickListener(this);
 
+        leftLowerButton();
+        rightLowerButton();
+    }
+
+    private void leftLowerButton() {
+        int redActionButtonSize = getResources().getDimensionPixelSize(
+                R.dimen.red_action_button_size);
+        int redActionButtonMargin = getResources().getDimensionPixelOffset(
+                R.dimen.action_button_margin);
+        int redActionButtonContentSize = getResources().getDimensionPixelSize(
+                R.dimen.red_action_button_content_size);
+        int redActionButtonContentMargin = getResources()
+                .getDimensionPixelSize(R.dimen.red_action_button_content_margin);
+
+        int redActionMenuRadius = getResources().getDimensionPixelSize(
+                R.dimen.red_action_menu_radius);
+        int blueSubActionButtonSize = getResources().getDimensionPixelSize(
+                R.dimen.blue_sub_action_button_size);
+        int blueSubActionButtonContentMargin = getResources()
+                .getDimensionPixelSize(
+                        R.dimen.blue_sub_action_button_content_margin);
+
+        ImageView fabIconStar = new ImageView(this);
+//        fabIconStar.setImageResource(R.drawable.ic_action_camera);
+
+        // 设置菜单按钮Button的宽、高，边距
+        FloatingActionButton.LayoutParams starParams = new FloatingActionButton.LayoutParams(
+                redActionButtonSize, redActionButtonSize);
+        starParams.setMargins(redActionButtonMargin, redActionButtonMargin,
+                redActionButtonMargin, redActionButtonMargin);
+        fabIconStar.setLayoutParams(starParams);
+
+        // 设置菜单按钮Button里面图案的宽、高，边距
+        FloatingActionButton.LayoutParams fabIconStarParams = new FloatingActionButton.LayoutParams(
+                redActionButtonContentSize, redActionButtonContentSize);
+        fabIconStarParams.setMargins(redActionButtonContentMargin,
+                redActionButtonContentMargin, redActionButtonContentMargin,
+                redActionButtonContentMargin);
+
+        final FloatingActionButton leftCenterButton = new FloatingActionButton.Builder(
+                this).setContentView(fabIconStar, fabIconStarParams)
+                .setPosition(FloatingActionButton.POSITION_BOTTOM_LEFT)
+                .setLayoutParams(starParams).build();
+
+        SubActionButton.Builder lCSubBuilder = new SubActionButton.Builder(this);
+
+        //设置菜单中图标的参数
+        FrameLayout.LayoutParams blueContentParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
+        blueContentParams.setMargins(blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin);
+
+        final ImageView rlIcon1 = new ImageView(this);
+        final ImageView rlIcon2 = new ImageView(this);
+        final ImageView rlIcon3 = new ImageView(this);
+        final ImageView rlIcon4 = new ImageView(this);
+        // 设置弹出菜单的图标
+        rlIcon1.setImageResource(R.drawable.bluetooth);
+        rlIcon2.setImageResource(R.drawable.locate);
+        rlIcon3.setImageResource(R.drawable.add);
+        rlIcon4.setImageResource(R.drawable.clean);
+
+        final FloatingActionMenu leftCenterMenu = new FloatingActionMenu.Builder(this)
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon1, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon2, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon3, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon4, blueContentParams).build())
+                .setRadius(redActionMenuRadius).setStartAngle(-100).setEndAngle(20)
+                .attachTo(leftCenterButton).build();
+
+        leftCenterMenu.setStateChangeListener(new FloatingActionMenu.MenuStateChangeListener() {
+            @Override
+            public void onMenuOpened(FloatingActionMenu floatingActionMenu) {
+
+                rlIcon1.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startserver();
+                    }
+                });
+
+                rlIcon2.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        updateDroneLocation();
+                        cameraUpdate();
+                    }
+                });
+
+                rlIcon3.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        enableDisableAdd();
+                    }
+                });
+
+                rlIcon4.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                aMap.clear();
+                            }
+
+                        });
+                        waypointList.clear();
+                        waypointMissionBuilder.waypointList(waypointList);
+                        updateDroneLocation();
+                    }
+                });
+            }
+
+            @Override
+            public void onMenuClosed(FloatingActionMenu floatingActionMenu) {
+
+            }
+        });
+
+    }
+
+    private void rightLowerButton() {
+        int redActionButtonSize = getResources().getDimensionPixelSize(
+                R.dimen.red_action_button_size);
+        int redActionButtonMargin = getResources().getDimensionPixelOffset(
+                R.dimen.action_button_margin);
+        int redActionButtonContentSize = getResources().getDimensionPixelSize(
+                R.dimen.red_action_button_content_size);
+        int redActionButtonContentMargin = getResources()
+                .getDimensionPixelSize(R.dimen.red_action_button_content_margin);
+
+        int redActionMenuRadius = getResources().getDimensionPixelSize(
+                R.dimen.red_action_menu_radius);
+        int blueSubActionButtonSize = getResources().getDimensionPixelSize(
+                R.dimen.blue_sub_action_button_size);
+        int blueSubActionButtonContentMargin = getResources()
+                .getDimensionPixelSize(
+                        R.dimen.blue_sub_action_button_content_margin);
+
+        ImageView fabIconStar = new ImageView(this);
+//        fabIconStar.setImageResource(R.drawable.ic_action_camera);
+
+        // 设置菜单按钮Button的宽、高，边距
+        FloatingActionButton.LayoutParams starParams = new FloatingActionButton.LayoutParams(
+                redActionButtonSize, redActionButtonSize);
+        starParams.setMargins(redActionButtonMargin, redActionButtonMargin,
+                redActionButtonMargin, redActionButtonMargin);
+        fabIconStar.setLayoutParams(starParams);
+
+        // 设置菜单按钮Button里面图案的宽、高，边距
+        FloatingActionButton.LayoutParams fabIconStarParams = new FloatingActionButton.LayoutParams(
+                redActionButtonContentSize, redActionButtonContentSize);
+        fabIconStarParams.setMargins(redActionButtonContentMargin,
+                redActionButtonContentMargin, redActionButtonContentMargin,
+                redActionButtonContentMargin);
+
+        final FloatingActionButton leftCenterButton = new FloatingActionButton.Builder(
+                this).setContentView(fabIconStar, fabIconStarParams)
+                .setPosition(FloatingActionButton.POSITION_BOTTOM_RIGHT)
+                .setLayoutParams(starParams).build();
+
+        SubActionButton.Builder lCSubBuilder = new SubActionButton.Builder(this);
+
+        //设置菜单中图标的参数
+        FrameLayout.LayoutParams blueContentParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
+        blueContentParams.setMargins(blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin,
+                blueSubActionButtonContentMargin);
+
+        final ImageView rlIcon1 = new ImageView(this);
+        final ImageView rlIcon2 = new ImageView(this);
+        final ImageView rlIcon3 = new ImageView(this);
+        final ImageView rlIcon4 = new ImageView(this);
+        // 设置弹出菜单的图标
+        rlIcon1.setImageResource(R.drawable.set);
+        rlIcon2.setImageResource(R.drawable.update);
+        rlIcon3.setImageResource(R.drawable.start);
+        rlIcon4.setImageResource(R.drawable.stop);
+
+        final FloatingActionMenu leftCenterMenu = new FloatingActionMenu.Builder(this)
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon1, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon2, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon3, blueContentParams).build())
+                .addSubActionView(lCSubBuilder.setContentView(rlIcon4, blueContentParams).build())
+                .setRadius(redActionMenuRadius).setStartAngle(-80).setEndAngle(-200)
+                .attachTo(leftCenterButton).build();
+
+        leftCenterMenu.setStateChangeListener(new FloatingActionMenu.MenuStateChangeListener() {
+            @Override
+            public void onMenuOpened(FloatingActionMenu floatingActionMenu) {
+
+                rlIcon1.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showSettingDialog();
+                    }
+                });
+
+                rlIcon2.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        uploadWayPointMission();
+                    }
+                });
+
+                rlIcon3.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startWaypointMission();
+                    }
+                });
+
+                rlIcon4.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        stopWaypointMission();
+                    }
+                });
+            }
+
+            @Override
+            public void onMenuClosed(FloatingActionMenu floatingActionMenu) {
+
+            }
+        });
     }
 
     private void initMapView() {
@@ -177,9 +426,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             aMap.setOnMapClickListener(this);// add the listener for click for amap object
         }
 
-        LatLng shenzhen = new LatLng(22.5362, 113.9454);
-        aMap.addMarker(new MarkerOptions().position(shenzhen).title("Marker in Shenzhen"));
-        aMap.moveCamera(CameraUpdateFactory.newLatLng(shenzhen));
+//        LatLng shenzhen = new LatLng(22.5362, 113.9454);
+//        aMap.addMarker(new MarkerOptions().position(shenzhen).title("Marker in Shenzhen"));
+//        aMap.moveCamera(CameraUpdateFactory.newLatLng(shenzhen));
     }
 
     private void initbuletooth() {
@@ -310,7 +559,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
 
         @Override
         public void onExecutionFinish(@Nullable final DJIError error) {
-            setResultToToast("Execution finished: " + (error == null ? "Success!" : error.getDescription()));
+            setResultToToast("任务结束: " + (error == null ? "成功!" : error.getDescription()));
 
             stopTimer();
         }
@@ -361,7 +610,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         String myAlt = df.format(realLocationAlt);
 
         Message msg2 = new Message();
-        String info = "lat: " + mylat + " Lng: " + myLng + " Alt: " + myAlt;
+        String info = myLng + "-" + mylat + "-" + myAlt;
         msg2.obj = info;
         msg2.what = 1;
         LinkDetectedHandler.sendMessage(msg2);
@@ -395,56 +644,56 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         mMarkers.put(mMarkers.size(), marker);
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.bluetooth: {
-                startserver();
-                break;
-            }
-            case R.id.locate: {
-                updateDroneLocation();
-                cameraUpdate(); // Locate the drone's place
-                break;
-            }
-            case R.id.add: {
-                enableDisableAdd();
-                break;
-            }
-            case R.id.clear: {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        aMap.clear();
-                    }
-
-                });
-                waypointList.clear();
-                waypointMissionBuilder.waypointList(waypointList);
-                updateDroneLocation();
-                break;
-            }
-            case R.id.config: {
-                showSettingDialog();
-                break;
-            }
-            case R.id.upload: {
-                uploadWayPointMission();
-                break;
-            }
-            case R.id.start: {
-                startWaypointMission();
-                break;
-            }
-            case R.id.stop: {
-                stopWaypointMission();
-
-                break;
-            }
-            default:
-                break;
-        }
-    }
+//    @Override
+//    public void onClick(View v) {
+//        switch (v.getId()) {
+//            case R.id.bluetooth: {
+//                startserver();
+//                break;
+//            }
+//            case R.id.locate: {
+//                updateDroneLocation();
+//                cameraUpdate(); // Locate the drone's place
+//                break;
+//            }
+//            case R.id.add: {
+//                enableDisableAdd();
+//                break;
+//            }
+//            case R.id.clear: {
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        aMap.clear();
+//                    }
+//
+//                });
+//                waypointList.clear();
+//                waypointMissionBuilder.waypointList(waypointList);
+//                updateDroneLocation();
+//                break;
+//            }
+//            case R.id.config: {
+//                showSettingDialog();
+//                break;
+//            }
+//            case R.id.upload: {
+//                uploadWayPointMission();
+//                break;
+//            }
+//            case R.id.start: {
+//                startWaypointMission();
+//                break;
+//            }
+//            case R.id.stop: {
+//                stopWaypointMission();
+//
+//                break;
+//            }
+//            default:
+//                break;
+//        }
+//    }
 
     private void cameraUpdate() {
         LatLng pos = new LatLng(droneLocationLat, droneLocationLng);
@@ -457,10 +706,10 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
     private void enableDisableAdd() {
         if (isAdd == false) {
             isAdd = true;
-            add.setText("Exit");
+//            add.setText("Exit");
         } else {
             isAdd = false;
-            add.setText("Add");
+//            add.setText("Add");
         }
     }
 
@@ -468,8 +717,6 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         LinearLayout wayPointSettings = (LinearLayout) getLayoutInflater().inflate(R.layout.dialog_waypointsetting, null);
 
         final TextView wpAltitude_TV = (TextView) wayPointSettings.findViewById(R.id.altitude);
-        final TextView wpDelay_TV = (TextView) wayPointSettings.findViewById(R.id.delay);
-        final TextView wpRepeat_TV = (TextView) wayPointSettings.findViewById(R.id.repeat);
         final TextView wpfllowradius_TV = (TextView) wayPointSettings.findViewById(R.id.Followradius);
 
         RadioGroup speed_RG = (RadioGroup) wayPointSettings.findViewById(R.id.speed);
@@ -529,17 +776,14 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
         new AlertDialog.Builder(this)
                 .setTitle("")
                 .setView(wayPointSettings)
-                .setPositiveButton("Finish", new DialogInterface.OnClickListener() {
+                .setPositiveButton("完成", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
 
                         String altitudeString = wpAltitude_TV.getText().toString();
                         altitude = Integer.parseInt(nulltoIntegerDefalt(altitudeString));
 
-                        String delayString = wpDelay_TV.getText().toString();
-                        delay = Integer.parseInt(nulltoIntegerDefalt(delayString)) * 1000;
-
-                        String repeatString = wpRepeat_TV.getText().toString();
-                        repeat = Integer.parseInt(nulltoIntegerDefalt(repeatString)) * 1000;
+                        delay = 2500;
+                        repeat = 1500;
 
                         String followradiusString = wpfllowradius_TV.getText().toString();
                         followradius = Integer.parseInt(nulltoIntegerDefalt(followradiusString));
@@ -556,7 +800,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                     }
 
                 })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         dialog.cancel();
                     }
@@ -606,14 +850,14 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 waypointMissionBuilder.getWaypointList().get(i).altitude = altitude;
             }
 
-            setResultToToast("Set Waypoint attitude successfully");
+            setResultToToast("设置飞行参数成功");
         }
 
         DJIError error = getWaypointMissionOperator().loadMission(waypointMissionBuilder.build());
         if (error == null) {
-            setResultToToast("loadWaypoint succeeded");
+            setResultToToast("下载飞行任务成功");
         } else {
-            setResultToToast("loadWaypoint failed " + error.getDescription());
+            setResultToToast("下载飞行任务失败 " + error.getDescription());
         }
 
     }
@@ -624,9 +868,9 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             @Override
             public void onResult(DJIError error) {
                 if (error == null) {
-                    setResultToToast("Mission upload successfully!");
+                    setResultToToast("上传任务成功!");
                 } else {
-                    setResultToToast("Mission upload failed, error: " + error.getDescription() + " retrying...");
+                    setResultToToast("上传任务失败, 原因: " + error.getDescription() + " 重试...");
                     getWaypointMissionOperator().retryUploadMission(null);
                 }
             }
@@ -642,7 +886,8 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 if (error == null) {
                     startTimer();
                 }
-                setResultToToast("Mission Start: " + (error == null ? "Successfully" : error.getDescription()));
+                drawline();
+                setResultToToast("任务开始: " + (error == null ? "成功" : error.getDescription()));
             }
         });
 
@@ -656,10 +901,40 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 if (error == null) {
                     stopTimer();
                 }
-                setResultToToast("Mission Stop: " + (error == null ? "Successfully" : error.getDescription()));
+                setResultToToast("任务结束: " + (error == null ? "成功" : error.getDescription()));
 
             }
         });
+
+    }
+
+    private void drawline() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                LatLng last = null;
+                if (waypointMissionBuilder.getWaypointList().size() > 0) {
+                    for (int i = 0; i < waypointMissionBuilder.getWaypointList().size(); i++) {
+                        Waypoint point = waypointMissionBuilder.getWaypointList().get(i);
+                        LatLng after = CoordinateUtil.toGCJ02Point(point.coordinate.getLatitude(), point.coordinate.getLongitude());
+
+                        if (i == waypointMissionBuilder.getWaypointList().size() - 1) {
+                            last = after;
+                        }
+
+                        linedraw.add(after);
+                    }
+                }
+
+                Polyline polyline = aMap.addPolyline(new PolylineOptions().
+                        addAll(linedraw).width(10).color(Color.argb(255, 255, 72, 56)));
+                Polylinelist.add(polyline);
+
+                linedraw.clear();
+                linedraw.add(last);
+            }
+        });
+
 
     }
 
@@ -678,7 +953,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                                 PROTOCOL_SCHEME_RFCOMM,
                                 UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
                 Message msg = new Message();
-                msg.obj = "please wite for slient linking...";
+                msg.obj = "等待客户端连接...";
                 msg.what = 0;
                 LinkDetectedHandler.sendMessage(msg);
 
@@ -686,7 +961,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
                 socket = mserverSocket.accept();
 
                 Message msg2 = new Message();
-                String info = "client linked,you can send message.";
+                String info = "客户端已连接.";
                 msg2.obj = info;
                 msg2.what = 0;
                 LinkDetectedHandler.sendMessage(msg2);
@@ -702,7 +977,11 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
             if (0 == msg.what) {
                 mstate.setText((String) msg.obj);
             } else {
-                message.setText((String) msg.obj);
+                String[] s = ((String) msg.obj).split("-");
+
+                mLng.setText(s[0]);
+                mLat.setText(s[1]);
+                mAlt.setText(s[2]);
             }
         }
     };
@@ -726,7 +1005,7 @@ public class MainActivity extends FragmentActivity implements View.OnClickListen
 
     private void startTimer() {
 
-        String s ="speed-"+mSpeed+"-radius-"+ followradius;
+        String s = "speed-" + mSpeed + "-radius-" + followradius;
         sendMessageHandle(s);
 
         myTimer = new Timer();
