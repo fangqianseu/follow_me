@@ -275,6 +275,7 @@ public class MainActivity extends FragmentActivity implements OnMapClickListener
                     public void onClick(View v) {
                         updateDroneLocation();
                         cameraUpdate();
+                        linedraw.add(new LatLng(droneLocationLat, droneLocationLng));
                     }
                 });
 
@@ -603,11 +604,13 @@ public class MainActivity extends FragmentActivity implements OnMapClickListener
     // Update the drone location based on states from MCU.
     private void updateDroneLocation() {
 
-        java.text.DecimalFormat df = new java.text.DecimalFormat("#.######");
+        java.text.DecimalFormat df = new java.text.DecimalFormat("0.000000");
 
         String mylat = df.format(realLocationLat);
         String myLng = df.format(realLocationLng);
-        String myAlt = df.format(realLocationAlt);
+
+        java.text.DecimalFormat df1 = new java.text.DecimalFormat("0.00");
+        String myAlt = df1.format(realLocationAlt);
 
         Message msg2 = new Message();
         String info = myLng + "-" + mylat + "-" + myAlt;
@@ -706,9 +709,11 @@ public class MainActivity extends FragmentActivity implements OnMapClickListener
     private void enableDisableAdd() {
         if (isAdd == false) {
             isAdd = true;
+            setResultToToast("可以添加飞行点");
 //            add.setText("Exit");
         } else {
             isAdd = false;
+            setResultToToast("添加飞行点已关闭");
 //            add.setText("Add");
         }
     }
