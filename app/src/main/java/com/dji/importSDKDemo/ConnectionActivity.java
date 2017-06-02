@@ -137,7 +137,7 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
 
 
 
-            mBtnOpen.setEnabled(true);
+//            mBtnOpen.setEnabled(true);
 
 
 
