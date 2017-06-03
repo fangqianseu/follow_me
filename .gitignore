@@ -9,3 +9,4 @@
 .externalNativeBuild
 /dJISDKLIB/build/outputs/aar/dJISDKLIB-debug.aar
 /dJISDKLIB/build/outputs/aar/dJISDKLIB-release.aar
+/.idea
